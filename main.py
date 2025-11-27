@@ -1,13 +1,102 @@
 import pygame
 import sys
 import math
-from enum import Enum, auto
-from config import *
-from gamedata import *
-from models import *
 import os
+import urllib.request
+from enum import Enum, auto
 
-import sys, os
+
+GAME_ROOT_DIR = "1326_game"
+GITHUB_REPO_URL = "https://raw.githubusercontent.com/farrell508/Python-Tycoon/refs/heads/main/"
+
+REQUIRED_PY_FILES = ["config.py", "gamedata.py", "models.py"]
+
+REQUIRED_ASSET_FILES = [
+    "grass_tile.png", "iron_ore_patch.png", "copper_ore_patch.png", 
+    "coal_ore_patch.png", "wood_patch.png",
+    
+    "iron_ore.png", "copper_ore.png", "coal_ore.png", "wood.png",
+    "iron_ingot.png", "copper_ingot.png",
+    "iron_gear.png", "copper_wire.png", "circuit.png",
+    "science_pack_1.png",
+    "conveyor.png", "miner.png", "smelter.png", "box.png", 
+    "sell_node.png", "splitter.png", "assembler.png", "lab.png",
+    "fast_conveyor.png", "heavy_miner.png",
+
+    "building_conveyor.png", "building_fast_conveyor.png",
+    "building_miner.png", "building_heavy_miner.png",
+    "building_smelter.png", "building_smelter_active.png",
+    "building_box.png", "building_sell_node.png",
+    "building_splitter.png",
+    "building_assembler.png", "building_assembler_active.png",
+    "building_lab.png", "building_lab_active.png"
+]
+
+def download_file(file_url, save_path):
+    try:
+        print(f"다운로드 중: {save_path} ...", end="")
+
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        
+        with urllib.request.urlopen(file_url) as response:
+            data = response.read()
+            with open(save_path, 'wb') as f:
+                f.write(data)
+        print(" 완료")
+    except Exception as e:
+        print(f"\n[실패] {save_path} 다운로드 오류: {e}")
+
+
+def bootstrap():
+    print(f"=== 게임 리소스 점검 ({GAME_ROOT_DIR} 폴더) ===")
+    
+
+    if not os.path.exists(GAME_ROOT_DIR):
+        os.makedirs(GAME_ROOT_DIR)
+        print(f"폴더 생성: {GAME_ROOT_DIR}/")
+
+
+    for filename in REQUIRED_PY_FILES:
+
+        save_path = os.path.join(GAME_ROOT_DIR, filename)
+        
+        if not os.path.exists(save_path):
+            url = GITHUB_REPO_URL + filename
+            download_file(url, save_path)
+    
+
+    assets_dir = os.path.join(GAME_ROOT_DIR, "assets")
+    if not os.path.exists(assets_dir):
+        os.makedirs(assets_dir)
+        print(f"폴더 생성: {assets_dir}/")
+
+    for filename in REQUIRED_ASSET_FILES:
+
+        save_path = os.path.join(assets_dir, filename)
+        
+        if not os.path.exists(save_path):
+            url = GITHUB_REPO_URL + "assets/" + filename
+            download_file(url, save_path)
+            
+    print("=== 준비 완료! 게임을 시작합니다 ===\n")
+
+
+
+bootstrap()
+
+sys.path.append(os.path.abspath(GAME_ROOT_DIR))
+
+try:
+
+    from config import *
+    from gamedata import *
+    from models import *
+except ImportError as e:
+    print(f"[치명적 오류] 필수 파일을 불러올 수 없습니다: {e}")
+    print(f"'{GAME_ROOT_DIR}' 폴더 안에 필수 파일들이 있는지 확인하세요.")
+    sys.exit()
+
+
 def resource_path(relative_path):
     try: base_path = sys._MEIPASS
     except Exception: base_path = os.path.abspath(".")
@@ -24,7 +113,7 @@ class Game:
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        pygame.display.set_caption("Factory Tycoon v2.1: Minecraft Style Controls")
+        pygame.display.set_caption("Factory Tycoon v2.1: Folder Edition")
         self.clock = pygame.time.Clock()
         fonts = ["malgungothic", "applesdgothicneo", "arialunicode", "arial"]
         self.font = None
@@ -40,7 +129,8 @@ class Game:
         self.item_images = {}       
         self.tile_images = {}       
         self.building_images = {}   
-        self.asset_folder = "assets"
+        
+        self.asset_folder = os.path.join(GAME_ROOT_DIR, "assets")
         self.grass_tile = None      
         self.load_assets()
 
@@ -66,6 +156,9 @@ class Game:
 
     def _load_scaled_image(self, file_name, size):
         file_path = resource_path(os.path.join(self.asset_folder, file_name))
+        if not os.path.exists(file_path):
+            return None
+            
         try:
             image = pygame.image.load(file_path).convert_alpha()
             if size: image = pygame.transform.scale(image, size)
@@ -73,7 +166,7 @@ class Game:
         except Exception: return None
 
     def load_assets(self):
-        print("--- 에셋 로드 ---")
+        print("--- 에셋 로드 (메모리 적재) ---")
         self.grass_tile = self._load_scaled_image("grass_tile.png", (TILE_SIZE, TILE_SIZE))
         
         icon_size = (32, 32)
@@ -150,7 +243,6 @@ class Game:
                         self.close_container()
                         self.state = GameState.MISSIONS
                 elif event.key == pygame.K_t:
-                    # 수정: T 키는 이제 닫기 기능만 수행 (여는 기능 제거)
                     if self.state == GameState.TECH_TREE: self.close_container()
                 elif event.key == pygame.K_ESCAPE:
                     if self.state != GameState.PLAY:
@@ -201,7 +293,6 @@ class Game:
                     elif event.button == 3:
                         b = self.world.get_building_at(gx, gy)
                         if b:
-                            # 수정: 연구소를 우클릭하면 바로 연구 트리(TECH_TREE) UI를 엽니다.
                             if b.type == BuildingType.LAB:
                                 self.open_tech_tree(b)
                                 self.inspected_info = None
@@ -221,7 +312,6 @@ class Game:
                 elif self.state == GameState.MISSIONS: 
                     if event.button == 1: self.handle_mission_click(mx, my)
                 elif self.state == GameState.TECH_TREE:
-                    # 수정: 연구 트리 상태에서도 인벤토리 클릭(투입)과 연구 선택이 모두 가능해야 함
                     if event.button == 1: self.handle_tech_click(mx, my)
                     self.handle_inventory_click(event.button, mx, my)
 
@@ -258,7 +348,6 @@ class Game:
                 self.held_item = None
 
     def handle_inventory_click(self, button, mx, my):
-        # 조립기 레시피 선택 로직 (CONTAINER 상태일 때만 동작)
         if self.state == GameState.CONTAINER and button == 1 and self.opened_container and self.opened_container.type == BuildingType.ASSEMBLER:
             c_x, c_y = SCREEN_WIDTH // 2, 100
             rx, ry = c_x + 120, c_y
@@ -330,7 +419,6 @@ class Game:
                 if self.held_item and self.held_item.count <= 0: self.held_item = None
 
     def get_slot_under_mouse(self, mx, my):
-        # 수정: TECH_TREE 상태에서도 인벤토리 슬롯 인식을 위해 조건 추가
         if self.state not in [GameState.CONTAINER, GameState.TECH_TREE]: return None
         
         pinv_x, pinv_y = SCREEN_WIDTH // 2 - (9 * 44) // 2, SCREEN_HEIGHT - 200
@@ -356,7 +444,6 @@ class Game:
                 for i, (sx, sy) in enumerate(slots):
                     if pygame.Rect(sx, sy, 40, 40).collidepoint(mx, my): return (b.inv, i)
             elif b.type == BuildingType.LAB:
-                # TECH_TREE 상태일 때도 랩의 인벤토리 슬롯(팩 투입구) 위치 인식
                 if pygame.Rect(c_x - 20, c_y + 40, 40, 40).collidepoint(mx, my): return (b.inv, 0)
         return None
 
@@ -453,7 +540,6 @@ class Game:
             tooltip_stack = self.render_mission_ui()
         elif self.state == GameState.TECH_TREE:
             self.render_tech_ui()
-            # TECH_TREE 상태에서도 툴팁 표시를 위해 인벤토리 체크
             mx, my = pygame.mouse.get_pos()
             slot_info = self.get_slot_under_mouse(mx, my)
             if slot_info:
@@ -809,7 +895,6 @@ class Game:
         
         cx, cy = SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2
         
-        # --- 수정: 인벤토리(팩 투입)와 플레이어 인벤토리 표시 ---
         pinv_x, pinv_y = SCREEN_WIDTH // 2 - (9 * 44) // 2, SCREEN_HEIGHT - 200
         self.screen.blit(self.font.render("인벤토리", True, COLOR_TEXT), (pinv_x, pinv_y - 25))
         mx, my = pygame.mouse.get_pos()
@@ -822,7 +907,6 @@ class Game:
         if self.opened_container and self.opened_container.type == BuildingType.LAB:
             b = self.opened_container
             c_x, c_y = SCREEN_WIDTH // 2, 100
-            # 랩(연구소) 투입구 표시
             sx, sy = c_x - 20, c_y + 40
             self.draw_slot(sx, sy, b.inv.slots[0], pygame.Rect(sx, sy, 40, 40).collidepoint(mx, my))
             self.screen.blit(self.font_small.render("자동화 팩 투입", True, COLOR_TEXT), (sx - 20, sy - 15))
@@ -834,7 +918,6 @@ class Game:
                 pygame.draw.rect(self.screen, COLOR_PROGRESS_BG, (c_x - 100, c_y + 100, 200, 20))
                 pygame.draw.rect(self.screen, COLOR_PROGRESS_RESEARCH, (c_x - 100, c_y + 100, w, 20))
                 self.screen.blit(self.font.render(f"{cur['name']} ({int(pct*100)}%)", True, COLOR_TEXT), (c_x - 80, c_y + 105))
-        # ---------------------------------------------------
 
         start_y = cy - 100
         for tech_id, data in TECH_DATA.items():
