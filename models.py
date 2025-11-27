@@ -293,7 +293,6 @@ class World:
         
         self.player_inv.add_item(ItemType.MINER, 1)
         self.player_inv.add_item(ItemType.CONVEYOR, 10)
-        self.player_inv.add_item(ItemType.LAB, 1)
         
         self.missions = {}
         self.available_missions = [MissionType.START_UP]
