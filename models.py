@@ -13,19 +13,63 @@ class Inventory:
     def __init__(self, size):
         self.slots = [None] * size
 
+    # [수정 1] 핫바 우선순위 적용된 add_item
     def add_item(self, item_type, count=1):
-        for stack in self.slots:
-            if stack and stack.item_type == item_type and stack.count < stack.max_stack:
-                needed = stack.max_stack - stack.count
-                added = min(needed, count)
-                stack.count += added
-                count -= added
-                if count <= 0: return True
-        for i, stack in enumerate(self.slots):
-            if not stack:
-                self.slots[i] = ItemStack(item_type, count)
-                return True
-        return False
+        # 플레이어 인벤토리(크기 36)인지 확인
+        is_player_inv = len(self.slots) == 36
+
+        if is_player_inv:
+            # --- 플레이어 인벤토리 우선순위 로직 ---
+            hotbar_indices = range(27, 36)
+            main_inv_indices = range(0, 27)
+
+            # 1. 핫바에 기존 스택이 있는지 확인
+            for i in hotbar_indices:
+                stack = self.slots[i]
+                if stack and stack.item_type == item_type and stack.count < stack.max_stack:
+                    needed = stack.max_stack - stack.count
+                    added = min(needed, count)
+                    stack.count += added
+                    count -= added
+                    if count <= 0: return True
+            
+            # 2. 메인 인벤토리에 기존 스택이 있는지 확인
+            for i in main_inv_indices:
+                stack = self.slots[i]
+                if stack and stack.item_type == item_type and stack.count < stack.max_stack:
+                    needed = stack.max_stack - stack.count
+                    added = min(needed, count)
+                    stack.count += added
+                    count -= added
+                    if count <= 0: return True
+
+            # 3. 핫바에 빈 슬롯이 있는지 확인
+            for i in hotbar_indices:
+                if not self.slots[i]:
+                    self.slots[i] = ItemStack(item_type, count)
+                    return True # 남은 아이템 전부를 새 슬롯에 추가
+
+            # 4. 메인 인벤토리에 빈 슬롯이 있는지 확인
+            for i in main_inv_indices:
+                if not self.slots[i]:
+                    self.slots[i] = ItemStack(item_type, count)
+                    return True # 남은 아이템 전부를 새 슬롯에 추가
+        
+        else:
+            # --- 기존 로직 (상자, 기계 등) ---
+            for stack in self.slots:
+                if stack and stack.item_type == item_type and stack.count < stack.max_stack:
+                    needed = stack.max_stack - stack.count
+                    added = min(needed, count)
+                    stack.count += added
+                    count -= added
+                    if count <= 0: return True
+            for i, stack in enumerate(self.slots):
+                if not stack:
+                    self.slots[i] = ItemStack(item_type, count)
+                    return True
+        
+        return False # 공간 없음
 
     def add_stack(self, other_stack, slot_range=None):
         if slot_range is None: slot_range = range(len(self.slots))
@@ -269,7 +313,8 @@ class Building:
             dx, dy = self.direction.to_vector()
             ox += dx; oy += dy
         
-        if not (world.min_x <= ox < world.max_x and world.min_y <= oy < self.max_y): return
+        # [수정 2] self.max_y -> world.max_y 로 오타 수정
+        if not (world.min_x <= ox < world.max_x and world.min_y <= oy < world.max_y): return
 
         if world.add_item(ItemEntity(output_stack.item_type, ox, oy)):
             output_stack.count -= 1
