@@ -269,7 +269,7 @@ class Building:
             dx, dy = self.direction.to_vector()
             ox += dx; oy += dy
         
-        if not (world.min_x <= ox < world.max_x and world.min_y <= oy < world.max_y): return
+        if not (world.min_x <= ox < world.max_x and world.min_y <= oy < self.max_y): return
 
         if world.add_item(ItemEntity(output_stack.item_type, ox, oy)):
             output_stack.count -= 1
@@ -301,6 +301,10 @@ class World:
         self.unlocked_techs = set()
         self.current_research = None 
         self.research_progress = 0   
+
+        # 구매한 업그레이드 및 패시브 인컴 추가
+        self.purchased_upgrades = set() 
+        self.passive_income_per_sec = 0 
 
         self.generate_map()
 
@@ -402,8 +406,30 @@ class World:
             self.current_research = None
             self.research_progress = 0
 
+    # 업그레이드 구매 메서드 추가
+    def buy_upgrade(self, item_type):
+        if item_type in self.purchased_upgrades:
+            return False # 이미 구매함
+        
+        data = ITEM_DATA.get(item_type)
+        if not data or not data.get("is_upgrade"):
+            return False # 업그레이드 아이템이 아님
+        
+        cost = data.get("cost", 0)
+        if self.money >= cost:
+            self.money -= cost
+            self.purchased_upgrades.add(item_type)
+            self.passive_income_per_sec += data.get("passive_income", 0)
+            print(f"업그레이드 구매: {data['name']}. 현재 초당 수입: {self.passive_income_per_sec}/sec")
+            return True
+        return False
+
     def tick(self):
         self.update_mission_status()
+
+        # 패시브 인컴 적용
+        if self.passive_income_per_sec > 0:
+            self.money += self.passive_income_per_sec / LOGIC_TICK_RATE
 
         for b in set(self.buildings.values()): b.tick(self)
         items_to_remove = []

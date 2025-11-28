@@ -34,6 +34,13 @@ class ItemType(Enum):
     FAST_CONVEYOR = 200
     HEAVY_MINER = 201
 
+    # 디미고 아이템 추가
+    DIMIGO_TICKET = 1000
+    DIMIGO_PRESIDENT = 1001
+    DIMIGO_TEACHER = 1002
+    DIMIGO_PRINCIPAL = 1003
+    DIMIGO_CHAIRMAN = 1004
+
 ITEM_DATA = {
     ItemType.IRON_ORE: {"name": "철광석", "color": COLOR_IRON_ORE, "value": 2, "fuel_value": 0, "desc": "기본 광석", "tile_image": "iron_ore_patch.png"},
     ItemType.COPPER_ORE: {"name": "구리광석", "color": COLOR_COPPER_ORE, "value": 2, "fuel_value": 0, "desc": "전도성 광석", "tile_image": "copper_ore_patch.png"},
@@ -58,6 +65,13 @@ ITEM_DATA = {
 
     ItemType.FAST_CONVEYOR: {"name": "고속 컨베이어", "color": (255, 50, 255), "cost": 20, "is_building": True, "desc": "속도: 2x (매우 빠름)"},
     ItemType.HEAVY_MINER: {"name": "산업용 채굴기", "color": (200, 50, 50), "cost": 500, "is_building": True, "desc": "속도: 2.5/s, 범위: 3x3"},
+    
+    # 디미고 아이템 데이터 추가 (is_upgrade 플래그와 passive_income 추가)
+    ItemType.DIMIGO_TICKET: {"name": "디미고 입학권", "color": (255, 100, 100), "cost": 500, "is_upgrade": True, "desc": "디미고에 발을 들입니다. [초당 +1 Cr]", "passive_income": 1},
+    ItemType.DIMIGO_PRESIDENT: {"name": "디미고 학생회장", "color": (100, 100, 255), "cost": 10000, "is_upgrade": True, "desc": "학생들의 정점. [초당 +20 Cr]", "passive_income": 20},
+    ItemType.DIMIGO_TEACHER: {"name": "디미고 교사", "color": (100, 255, 100), "cost": 200000, "is_upgrade": True, "desc": "학생들을 가르칩니다. [초당 +500 Cr]", "passive_income": 500},
+    ItemType.DIMIGO_PRINCIPAL: {"name": "디미고 교장", "color": (255, 215, 0), "cost": 1000000, "is_upgrade": True, "desc": "학교의 1짱. [초당 +3000 Cr]", "passive_income": 3000},
+    ItemType.DIMIGO_CHAIRMAN: {"name": "디미고 이사장", "color": (200, 0, 255), "cost": 10000000, "is_upgrade": True, "desc": "진정한 학교의 주인. [초당 +20000 Cr]", "passive_income": 20000},
 }
 
 class BuildingType(Enum):
@@ -105,7 +119,11 @@ SHOP_ITEMS = [
     ItemType.CONVEYOR, ItemType.MINER, ItemType.SMELTER, 
     ItemType.SPLITTER, ItemType.ASSEMBLER, ItemType.BOX, 
     ItemType.SELL_NODE, ItemType.LAB,
-    ItemType.FAST_CONVEYOR, ItemType.HEAVY_MINER 
+    ItemType.FAST_CONVEYOR, ItemType.HEAVY_MINER,
+    # 디미고 아이템 상점 목록에 추가
+    ItemType.DIMIGO_TICKET, ItemType.DIMIGO_PRESIDENT,
+    ItemType.DIMIGO_TEACHER, ItemType.DIMIGO_PRINCIPAL,
+    ItemType.DIMIGO_CHAIRMAN
 ]
 
 SMELTER_RECIPES = {
