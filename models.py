@@ -306,7 +306,7 @@ class World:
         self.tiles = [[None for _ in range(self.max_width)] for _ in range(self.max_height)]
         self.buildings = {}
         self.items = []
-        self.money = 500000
+        self.money = 500
         self.player_inv = Inventory(36)
         self.player_inv.add_item(ItemType.MINER, 1)
         self.player_inv.add_item(ItemType.CONVEYOR, 10)
